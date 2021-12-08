@@ -1,0 +1,344 @@
+syntax = "proto3";
+
+package atlas.authz.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+
+import "github.com/infobloxopen/atlas-app-toolkit/query/collection_operators.proto";
+import "github.com/infobloxopen/protoc-gen-gorm/types/types.proto";
+import "github.com/infobloxopen/protoc-gen-gorm/options/gorm.proto";
+
+option go_package = "github.com/Infoblox-CTO/ngp.authz/dbapiserver/pkg/pb;pb";
+
+message Role {
+    option (gorm.opts) = {
+        ormable: true,
+    };
+    gorm.types.UUIDValue id = 1;
+    string account_id = 2;
+    string name = 3;
+    string description = 4;
+    bool readonly = 5 [ (gorm.field).drop = true ];
+    repeated Permission permissions = 6 [(gorm.field).many_to_many = {association_autoupdate: false association_autocreate: false}];
+    bool hidden = 7;
+    google.protobuf.Timestamp created_at = 8;
+    google.protobuf.Timestamp updated_at = 9;
+    google.protobuf.Timestamp deleted_at = 10;
+}
+
+message Permission {
+    option (gorm.opts) = {
+        ormable: true
+    };
+    string id = 1;
+    string name = 2;
+    bool hidden = 3;
+}
+
+message PermCategory {
+    option (gorm.opts) = {
+        ormable: true
+    };
+    string id = 1;
+    string name = 2;
+    repeated Permission permissions = 3;
+}
+
+message AccessPolicy {
+    option (gorm.opts) = {
+        ormable: true
+    };
+    gorm.types.UUIDValue id = 1;
+    string account_id = 2;
+    string name = 3;
+    string description = 4;
+    bool readonly = 5 [ (gorm.field).drop = true ];
+    Role role = 6 [(gorm.field).belongs_to = {association_autoupdate: false association_autocreate: false}];
+    string user_group_name = 7;
+    bool hidden = 8;
+    google.protobuf.Timestamp created_at = 9;
+    google.protobuf.Timestamp updated_at = 10;
+    google.protobuf.Timestamp deleted_at = 11;
+}
+
+service Roles {
+    option (gorm.server) = {
+        autogen: true
+        txn_middleware: true
+        with_tracing: true
+    };
+    rpc Create (CreateRoleRequest) returns (CreateRoleResponse) {
+        option (google.api.http) = {
+            post: "/roles"
+            body: "payload"
+        };
+    }
+    rpc Read(ReadRoleRequest) returns (ReadRoleResponse) {
+        option (google.api.http) = {
+            get: "/roles/{id.value}"
+        };
+    }
+    rpc Update (UpdateRoleRequest) returns (UpdateRoleResponse) {
+        option (google.api.http) = {
+            put: "/roles/{payload.id.value}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/roles/{payload.id.value}"
+                body: "payload"
+            }
+        };
+    }
+    rpc Delete (DeleteRoleRequest) returns (DeleteRoleResponse) {
+        option (gorm.method).object_type = "Role";
+        option (google.api.http) = {
+            delete: "/roles/{id.value}"
+        };
+    }
+    rpc DeleteSet (DeleteRolesRequest) returns (DeleteRolesResponse) {
+        option (gorm.method).object_type = "Role";
+        option (google.api.http) = {
+            delete: "/roles"
+            body: "*"
+        };
+    }
+    rpc List (ListRoleRequest) returns (ListRoleResponse) {
+        option (google.api.http) = {
+            get: "/roles"
+        };
+    }
+}
+
+message CreateRoleRequest {
+    Role payload = 1;
+}
+
+message CreateRoleResponse {
+    Role result = 1;
+}
+
+message ReadRoleRequest {
+    gorm.types.UUIDValue id = 1;
+    infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadRoleResponse {
+    Role result = 1;
+}
+
+message UpdateRoleRequest {
+    Role payload = 1;
+    google.protobuf.FieldMask field_mask = 2;
+}
+
+message UpdateRoleResponse {
+    Role result = 1;
+}
+
+message DeleteRoleRequest {
+    gorm.types.UUIDValue id = 1;
+}
+
+message DeleteRoleResponse {
+    Role result = 1;
+}
+
+message DeleteRolesRequest {
+    repeated gorm.types.UUIDValue ids = 1;
+}
+
+message DeleteRolesResponse {
+}
+
+message ListRoleRequest {
+    infoblox.api.Filtering filter = 1;
+    infoblox.api.Sorting order_by = 2;
+    infoblox.api.FieldSelection fields = 3;
+    infoblox.api.Pagination paging = 4;
+}
+
+message ListRoleResponse {
+    repeated Role results = 1;
+}
+
+service PermCategories {
+    option (gorm.server) = {
+        autogen: true
+        txn_middleware: true
+        with_tracing: true
+    };
+    rpc Read(ReadPermCategoryRequest) returns (ReadPermCategoryResponse) {
+        option (google.api.http) = {
+            get: "/perm_categories/{id}"
+        };
+    }
+    rpc List (ListPermCategoryRequest) returns (ListPermCategoryResponse) {
+        option (google.api.http) = {
+            get: "/perm_categories"
+        };
+    }
+}
+
+message ReadPermCategoryRequest {
+    string id = 1;
+    infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadPermCategoryResponse {
+    PermCategory result = 1;
+}
+
+message ListPermCategoryRequest {
+    infoblox.api.Filtering filter = 1;
+    infoblox.api.Sorting order_by = 2;
+    infoblox.api.FieldSelection fields = 3;
+    infoblox.api.Pagination paging = 4;
+}
+
+message ListPermCategoryResponse {
+    repeated PermCategory results = 1;
+}
+
+service AccessPolicies {
+    option (gorm.server) = {
+        autogen: true
+        txn_middleware: true
+        with_tracing: true
+    };
+    rpc Create (CreateAccessPolicyRequest) returns (CreateAccessPolicyResponse) {
+        option (google.api.http) = {
+            post: "/access_policies"
+            body: "payload"
+        };
+    }
+    rpc Read(ReadAccessPolicyRequest) returns (ReadAccessPolicyResponse) {
+        option (google.api.http) = {
+            get: "/access_policies/{id.value}"
+        };
+    }
+    rpc Update (UpdateAccessPolicyRequest) returns (UpdateAccessPolicyResponse) {
+        option (google.api.http) = {
+            put: "/access_policies/{payload.id.value}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/access_policies/{payload.id.value}"
+                body: "payload"
+            }
+        };
+    }
+    rpc Delete (DeleteAccessPolicyRequest) returns (DeleteAccessPolicyResponse) {
+        option (gorm.method).object_type = "AccessPolicy";
+        option (google.api.http) = {
+            delete: "/access_policies/{id.value}"
+        };
+    }
+    rpc DeleteSet (DeleteAccessPoliciesRequest) returns (DeleteAccessPoliciesResponse) {
+        option (gorm.method).object_type = "AccessPolicy";
+        option (google.api.http) = {
+            delete: "/access_policies"
+            body: "*"
+        };
+    }
+    rpc List (ListAccessPolicyRequest) returns (ListAccessPolicyResponse) {
+        option (google.api.http) = {
+            get: "/access_policies"
+        };
+    }
+}
+
+message CreateAccessPolicyRequest {
+    AccessPolicy payload = 1;
+}
+
+message CreateAccessPolicyResponse {
+    AccessPolicy result = 1;
+}
+
+message ReadAccessPolicyRequest {
+    gorm.types.UUIDValue id = 1;
+    infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadAccessPolicyResponse {
+    AccessPolicy result = 1;
+}
+
+message UpdateAccessPolicyRequest {
+    AccessPolicy payload = 1;
+    google.protobuf.FieldMask field_mask = 2;
+}
+
+message UpdateAccessPolicyResponse {
+    AccessPolicy result = 1;
+}
+
+message DeleteAccessPolicyRequest {
+    gorm.types.UUIDValue id = 1;
+}
+
+message DeleteAccessPolicyResponse {
+    AccessPolicy result = 1;
+}
+
+message DeleteAccessPoliciesRequest {
+    repeated gorm.types.UUIDValue ids = 1;
+}
+
+message DeleteAccessPoliciesResponse {
+}
+
+message ListAccessPolicyRequest {
+    infoblox.api.Filtering filter = 1;
+    infoblox.api.Sorting order_by = 2;
+    infoblox.api.FieldSelection fields = 3;
+    infoblox.api.Pagination paging = 4;
+}
+
+message ListAccessPolicyResponse {
+    repeated AccessPolicy results = 1;
+}
+
+service AuthzDBUpdates {
+    rpc GetAccessPolicyUpdates (GetAccessPolicyUpdatesRequest) returns (GetAccessPolicyUpdatesResponse) {
+        option (google.api.http) = {
+            get: "/ap_updates"
+        };
+    }
+    rpc GetRoleUpdates (GetRoleUpdatesRequest) returns (GetRoleUpdatesResponse) {
+        option (google.api.http) = {
+            get: "/role_updates"
+        };
+    }
+}
+
+message GetAccessPolicyUpdatesRequest {
+    google.protobuf.Timestamp since = 1;
+}
+
+message GetAccessPolicyUpdatesResponse {
+    repeated AccessPolicy results = 1;
+}
+
+message GetRoleUpdatesRequest {
+    google.protobuf.Timestamp since = 1;
+}
+
+message GetRoleUpdatesResponse {
+    repeated Role results = 1;
+}
+
+service EffectivePermissions {
+    rpc GetEffectivePermissions(GetEffectivePermissionsRequest) returns (GetEffectivePermissionsResponse) {
+        option (google.api.http) = {
+            get: "/effective_permissions"
+        };
+    }
+}
+
+message GetEffectivePermissionsRequest {
+}
+
+message GetEffectivePermissionsResponse {
+    repeated Permission results = 1;
+}
