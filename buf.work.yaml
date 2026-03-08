@@ -1,0 +1,7 @@
+version: v2
+directories:
+  - proto
+  - openapi
+  - avro
+  - jsonschema
+  - parquet
