@@ -33,7 +33,7 @@ policy:
     parquet:
         allow_additive_nullable_only: true
 
-publishing:
+release:
     tag_format: '{subdir}/v{version}'
     ci_only: true
 

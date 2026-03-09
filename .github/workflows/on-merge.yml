@@ -34,8 +34,8 @@ jobs:
 
       - name: Commit catalog changes
         run: |
-          git config user.name "apx-publisher[bot]"
-          git config user.email "apx-publisher[bot]@users.noreply.github.com"
+          git config user.name "apx-release[bot]"
+          git config user.email "apx-release[bot]@users.noreply.github.com"
           if git diff --quiet catalog/; then
             echo "No catalog changes"
           else
