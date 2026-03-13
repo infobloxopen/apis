@@ -16,10 +16,17 @@ jobs:
     # Only run if release manifests were added
     if: contains(github.event.head_commit.message, 'releases/') || contains(github.event.head_commit.message, 'Release')
     steps:
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APX_USER_APP_ID }}
+          private-key: ${{ secrets.APX_USER_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.APX_INFOBLOXOPEN_USER }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Find new release manifests in this push
         id: new_releases
