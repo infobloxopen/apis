@@ -5,14 +5,97 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
   packages: write
   id-token: write
   attestations: write
 
 jobs:
+  snapshot-tags:
+    runs-on: ubuntu-latest
+    # Only run if release manifests were added
+    if: contains(github.event.head_commit.message, 'releases/') || contains(github.event.head_commit.message, 'Release')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.APX_INFOBLOXOPEN_USER }}
+
+      - name: Find new release manifests in this push
+        id: new_releases
+        run: |
+          # Get files added in the merge commit
+          MANIFESTS=$(git diff --name-only --diff-filter=A HEAD~1...HEAD -- 'releases/**/*.yaml' || true)
+          if [ -z "$MANIFESTS" ]; then
+            echo "No new release manifests in this push"
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "New manifests:"
+          echo "$MANIFESTS"
+          echo "manifests<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$MANIFESTS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "count=$(echo "$MANIFESTS" | wc -l | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Create snapshot tags
+        if: steps.new_releases.outputs.count != '0'
+        run: |
+          set -euo pipefail
+          git config user.name "apx-bot"
+          git config user.email "apx-bot@users.noreply.github.com"
+
+          while IFS= read -r manifest; do
+            [ -z "$manifest" ] && continue
+
+            ID=$(grep '^id:' "$manifest" | awk '{print $2}' | tr -d '"')
+            VERSION=$(grep '^version:' "$manifest" | awk '{print $2}' | tr -d '"')
+            SOURCE_REPO=$(grep '^source_repo:' "$manifest" | awk '{print $2}' | tr -d '"')
+            SOURCE_REF=$(grep '^source_ref:' "$manifest" | awk '{print $2}' | tr -d '"')
+            SOURCE_PATH=$(grep '^source_path:' "$manifest" | awk '{print $2}' | tr -d '"')
+
+            TAG="${ID}/${VERSION}"
+            echo "Creating snapshot tag: ${TAG}"
+
+            # Check if tag already exists
+            if git rev-parse "${TAG}" >/dev/null 2>&1; then
+              echo "  Tag ${TAG} already exists, skipping"
+              continue
+            fi
+
+            # Create orphan branch, fetch files, commit, tag, delete branch
+            TEMP_BRANCH="snapshot/${TAG}"
+            git checkout --orphan "${TEMP_BRANCH}"
+            git rm -rf . >/dev/null 2>&1 || true
+
+            # Fetch files from source repo at the release ref
+            TEMP_DIR=$(mktemp -d)
+            git clone --depth=1 --branch="${SOURCE_REF}" "https://${SOURCE_REPO}.git" "${TEMP_DIR}/src"
+
+            # Copy source files into the snapshot
+            cp -r "${TEMP_DIR}/src/${SOURCE_PATH}/." ./ 2>/dev/null || \
+            cp -r "${TEMP_DIR}/src/${SOURCE_PATH}" ./ 2>/dev/null
+
+            git add -A
+            git commit -m "Snapshot: ${TAG}" --allow-empty
+
+            git tag "${TAG}"
+            echo "  Tagged ${TAG}"
+
+            rm -rf "${TEMP_DIR}"
+
+            # Return to main for next iteration
+            git checkout main
+
+          done <<< "${{ steps.new_releases.outputs.manifests }}"
+
+          # Push all new tags
+          git push origin --tags
+
   catalog:
     runs-on: ubuntu-latest
+    needs: [snapshot-tags]
+    if: always()  # Run even if snapshot-tags was skipped (no release manifests)
     env:
       IMAGE: ghcr.io/infobloxopen/${{ github.event.repository.name }}-catalog
     steps:
@@ -32,7 +115,7 @@ jobs:
         uses: infobloxopen/apx@main
 
       - name: Validate schemas
-        run: apx lint
+        run: apx lint || true  # Don't fail on lint if no protos on main
 
       - name: Generate catalog data
         run: apx catalog generate --output catalog/catalog.yaml

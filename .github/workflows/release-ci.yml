@@ -1,0 +1,176 @@
+name: Release PR Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'releases/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-releases:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: '1.47.2'
+
+      - name: Find new release manifests
+        id: manifests
+        run: |
+          # Get manifests added in this PR
+          MANIFESTS=$(git diff --name-only --diff-filter=A origin/main...HEAD -- 'releases/**/*.yaml')
+          if [ -z "$MANIFESTS" ]; then
+            echo "No new release manifests found"
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Found manifests:"
+          echo "$MANIFESTS"
+          echo "manifests<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$MANIFESTS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "count=$(echo "$MANIFESTS" | wc -l | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Validate each release
+        if: steps.manifests.outputs.count != '0'
+        run: |
+          set -euo pipefail
+
+          ERRORS=0
+
+          while IFS= read -r manifest; do
+            [ -z "$manifest" ] && continue
+            echo ""
+            echo "=========================================="
+            echo "Validating: ${manifest}"
+            echo "=========================================="
+
+            # Parse manifest fields
+            ID=$(grep '^id:' "$manifest" | awk '{print $2}' | tr -d '"')
+            VERSION=$(grep '^version:' "$manifest" | awk '{print $2}' | tr -d '"')
+            SOURCE_REPO=$(grep '^source_repo:' "$manifest" | awk '{print $2}' | tr -d '"')
+            SOURCE_REF=$(grep '^source_ref:' "$manifest" | awk '{print $2}' | tr -d '"')
+            SOURCE_PATH=$(grep '^source_path:' "$manifest" | awk '{print $2}' | tr -d '"')
+            FORMAT=$(grep '^format:' "$manifest" | awk '{print $2}' | tr -d '"')
+
+            # Validate required fields
+            for field in ID VERSION SOURCE_REPO SOURCE_REF SOURCE_PATH FORMAT; do
+              if [ -z "${!field}" ]; then
+                echo "::error::${manifest}: missing required field: ${field}"
+                ERRORS=$((ERRORS + 1))
+                continue 2
+              fi
+            done
+
+            echo "  ID:          ${ID}"
+            echo "  Version:     ${VERSION}"
+            echo "  Source:      ${SOURCE_REPO}@${SOURCE_REF}"
+            echo "  Source path: ${SOURCE_PATH}"
+            echo "  Format:      ${FORMAT}"
+
+            # Validate version is valid semver
+            if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+              echo "::error::${manifest}: invalid semver version: ${VERSION}"
+              ERRORS=$((ERRORS + 1))
+              continue
+            fi
+
+            # Fetch proposed files from source repo
+            PROPOSED_DIR=$(mktemp -d)
+            echo "  Fetching proposed files from ${SOURCE_REPO}..."
+            git clone --depth=1 --branch="${SOURCE_REF}" "https://${SOURCE_REPO}.git" "${PROPOSED_DIR}/src" 2>/dev/null || {
+              echo "::error::${manifest}: failed to fetch source_ref ${SOURCE_REF} from ${SOURCE_REPO}"
+              ERRORS=$((ERRORS + 1))
+              continue
+            }
+
+            PROPOSED_FILES="${PROPOSED_DIR}/src/${SOURCE_PATH}"
+            if [ ! -d "$PROPOSED_FILES" ]; then
+              echo "::error::${manifest}: source_path ${SOURCE_PATH} not found in ${SOURCE_REPO}@${SOURCE_REF}"
+              ERRORS=$((ERRORS + 1))
+              continue
+            fi
+
+            # Lint proposed files (proto only for now)
+            if [ "$FORMAT" = "proto" ]; then
+              echo "  Running buf lint..."
+              if ! buf lint "$PROPOSED_FILES" 2>&1; then
+                echo "::warning::${manifest}: buf lint found issues (non-blocking for third-party)"
+              fi
+            fi
+
+            # Find previous release for breaking change detection
+            RELEASE_DIR="releases/${ID}"
+            PREV_VERSION=""
+            if [ -d "$RELEASE_DIR" ]; then
+              PREV_VERSION=$(ls "$RELEASE_DIR"/*.yaml 2>/dev/null | \
+                sed 's|.*/||; s|\.yaml$||' | \
+                grep -v "^${VERSION}$" | \
+                sort -V | tail -1)
+            fi
+
+            if [ -z "$PREV_VERSION" ]; then
+              echo "  No previous version found — skipping breaking change check"
+              continue
+            fi
+
+            echo "  Previous version: ${PREV_VERSION}"
+
+            # Parse semver components for policy
+            MAJOR=$(echo "$VERSION" | sed 's/^v//' | cut -d. -f1)
+            PREV_MAJOR=$(echo "$PREV_VERSION" | sed 's/^v//' | cut -d. -f1)
+
+            # v0 = anything goes
+            if [ "$MAJOR" = "0" ]; then
+              echo "  v0 release — breaking changes allowed"
+              continue
+            fi
+
+            # Major version bump = breaking changes allowed
+            if [ "$MAJOR" != "$PREV_MAJOR" ]; then
+              echo "  Major version bump (${PREV_MAJOR} → ${MAJOR}) — breaking changes allowed"
+              continue
+            fi
+
+            # Minor/patch on v1+ = no breaking changes
+            echo "  Minor/patch bump on v${MAJOR} — checking for breaking changes..."
+
+            # Fetch previous version files from the tag in this repo
+            PREV_DIR=$(mktemp -d)
+            PREV_TAG="${ID}/${PREV_VERSION}"
+            if git fetch origin "refs/tags/${PREV_TAG}:refs/tags/${PREV_TAG}" 2>/dev/null && \
+               git archive "${PREV_TAG}" -- "${SOURCE_PATH}" 2>/dev/null | tar -C "$PREV_DIR" -xf -; then
+
+              PREV_FILES="${PREV_DIR}/${SOURCE_PATH}"
+
+              if [ "$FORMAT" = "proto" ]; then
+                echo "  Running buf breaking (${VERSION} vs ${PREV_VERSION})..."
+                if ! buf breaking "$PROPOSED_FILES" --against "$PREV_FILES" 2>&1; then
+                  echo "::error::${manifest}: BREAKING CHANGES detected on minor/patch bump (${PREV_VERSION} → ${VERSION})"
+                  ERRORS=$((ERRORS + 1))
+                fi
+              fi
+            else
+              echo "::warning::${manifest}: could not fetch previous tag ${PREV_TAG} — skipping breaking check"
+            fi
+
+            rm -rf "$PROPOSED_DIR" "$PREV_DIR"
+
+          done <<< "${{ steps.manifests.outputs.manifests }}"
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo ""
+            echo "::error::${ERRORS} validation error(s) found"
+            exit 1
+          fi
+
+          echo ""
+          echo "All release manifests validated successfully"

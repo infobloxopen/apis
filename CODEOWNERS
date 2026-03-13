@@ -18,3 +18,6 @@
 
 # Parquet schemas
 /parquet/ @infobloxopen/parquet-owners
+
+# Release manifests — auto-approved by the apx bot after CI passes
+/releases/ @apx-infobloxopen-user

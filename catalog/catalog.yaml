@@ -1,4 +1,29 @@
 version: 1
 org: infobloxopen
 repo: apis
-modules: []
+generated_by: apx dev (none) unknown
+modules:
+    - id: proto/google/api/v1
+      name: proto/google/api/v1
+      format: proto
+      domain: google
+      api_line: v1
+      version: v1.0.1
+      latest_stable: v1.0.1
+      lifecycle: stable
+      path: google/api
+      origin: sourced
+      managed_repo: github.com/infobloxopen/third-party-apis-google
+      import_mode: preserve
+    - id: proto/google/rpc/v1
+      name: proto/google/rpc/v1
+      format: proto
+      domain: google
+      api_line: v1
+      version: v1.0.1
+      latest_stable: v1.0.1
+      lifecycle: stable
+      path: google/rpc
+      origin: sourced
+      managed_repo: github.com/infobloxopen/third-party-apis-google
+      import_mode: preserve
