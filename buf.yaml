@@ -7,3 +7,5 @@ breaking:
 lint:
   use:
     - STANDARD
+  ignore:
+    - proto/google
