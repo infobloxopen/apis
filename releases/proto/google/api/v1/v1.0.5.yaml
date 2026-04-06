@@ -1,0 +1,8 @@
+id: proto/google/api/v1
+version: v1.0.5
+format: proto
+source_repo: github.com/infobloxopen/third-party-apis-google
+source_ref: proto/google/api/v1/v1.0.5
+source_path: google/api
+import_mode: preserve
+released_at: "2026-04-06T06:47:06Z"
