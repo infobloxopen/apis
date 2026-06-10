@@ -104,7 +104,8 @@ jobs:
     needs: [snapshot-tags]
     if: always()  # Run even if snapshot-tags was skipped (no release manifests)
     env:
-      IMAGE: ghcr.io/infobloxopen/${{ github.event.repository.name }}-catalog
+      # Repo-scoped package — the location apx v0.12.0 catalog discovery expects.
+      IMAGE: ghcr.io/infobloxopen/${{ github.event.repository.name }}/catalog
     steps:
       - name: Generate App Token
         id: app-token
@@ -112,6 +113,7 @@ jobs:
         with:
           app-id: ${{ secrets.APX_APP_ID }}
           private-key: ${{ secrets.APX_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
 
       - uses: actions/checkout@v4
         with:
@@ -122,7 +124,7 @@ jobs:
         uses: infobloxopen/apx@main
 
       - name: Validate schemas
-        run: apx lint || true  # Don't fail on lint if no protos on main
+        run: apx lint
 
       - name: Generate catalog data
         run: apx catalog generate --output catalog/catalog.yaml
