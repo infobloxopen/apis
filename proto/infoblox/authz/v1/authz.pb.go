@@ -98,7 +98,66 @@ func (x *Rule) GetPublic() bool {
 	return false
 }
 
+// FieldRule declares field-level security properties. Attach it to a message field;
+// the framework uses it to enforce encryption at rest, log redaction, and
+// response-leak detection.
+type FieldRule struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// If true, this field contains sensitive data (API keys, tokens, secrets).
+	// The framework will: encrypt/hash at rest (never store plaintext),
+	// redact in logs ("[REDACTED]"), and the security-check tool will catch
+	// any code path that returns the raw value after initial creation.
+	Secret        bool `protobuf:"varint,1,opt,name=secret,proto3" json:"secret,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FieldRule) Reset() {
+	*x = FieldRule{}
+	mi := &file_infoblox_authz_v1_authz_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FieldRule) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FieldRule) ProtoMessage() {}
+
+func (x *FieldRule) ProtoReflect() protoreflect.Message {
+	mi := &file_infoblox_authz_v1_authz_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FieldRule.ProtoReflect.Descriptor instead.
+func (*FieldRule) Descriptor() ([]byte, []int) {
+	return file_infoblox_authz_v1_authz_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *FieldRule) GetSecret() bool {
+	if x != nil {
+		return x.Secret
+	}
+	return false
+}
+
 var file_infoblox_authz_v1_authz_proto_extTypes = []protoimpl.ExtensionInfo{
+	{
+		ExtendedType:  (*descriptorpb.FieldOptions)(nil),
+		ExtensionType: (*FieldRule)(nil),
+		Field:         50002,
+		Name:          "infoblox.authz.v1.field",
+		Tag:           "bytes,50002,opt,name=field",
+		Filename:      "infoblox/authz/v1/authz.proto",
+	},
 	{
 		ExtendedType:  (*descriptorpb.MethodOptions)(nil),
 		ExtensionType: (*Rule)(nil),
@@ -109,6 +168,14 @@ var file_infoblox_authz_v1_authz_proto_extTypes = []protoimpl.ExtensionInfo{
 	},
 }
 
+// Extension fields to descriptorpb.FieldOptions.
+var (
+	// Extension number 50002 (alongside method-level rule = 50001).
+	//
+	// optional infoblox.authz.v1.FieldRule field = 50002;
+	E_Field = &file_infoblox_authz_v1_authz_proto_extTypes[0]
+)
+
 // Extension fields to descriptorpb.MethodOptions.
 var (
 	// TODO(authz): 50001 is a PLACEHOLDER in protobuf's 50000-99999 "internal use"
@@ -117,7 +184,7 @@ var (
 	// broadly.
 	//
 	// optional infoblox.authz.v1.Rule rule = 50001;
-	E_Rule = &file_infoblox_authz_v1_authz_proto_extTypes[0]
+	E_Rule = &file_infoblox_authz_v1_authz_proto_extTypes[1]
 )
 
 var File_infoblox_authz_v1_authz_proto protoreflect.FileDescriptor
@@ -128,7 +195,10 @@ const file_infoblox_authz_v1_authz_proto_rawDesc = "" +
 	"\x04Rule\x12\x12\n" +
 	"\x04verb\x18\x01 \x01(\tR\x04verb\x12\x1a\n" +
 	"\bresource\x18\x02 \x01(\tR\bresource\x12\x16\n" +
-	"\x06public\x18\x03 \x01(\bR\x06public:M\n" +
+	"\x06public\x18\x03 \x01(\bR\x06public\"#\n" +
+	"\tFieldRule\x12\x16\n" +
+	"\x06secret\x18\x01 \x01(\bR\x06secret:S\n" +
+	"\x05field\x12\x1d.google.protobuf.FieldOptions\x18҆\x03 \x01(\v2\x1c.infoblox.authz.v1.FieldRuleR\x05field:M\n" +
 	"\x04rule\x12\x1e.google.protobuf.MethodOptions\x18ц\x03 \x01(\v2\x17.infoblox.authz.v1.RuleR\x04ruleB>Z<github.com/infobloxopen/apis/proto/infoblox/authz/v1;authzv1b\x06proto3"
 
 var (
@@ -143,18 +213,22 @@ func file_infoblox_authz_v1_authz_proto_rawDescGZIP() []byte {
 	return file_infoblox_authz_v1_authz_proto_rawDescData
 }
 
-var file_infoblox_authz_v1_authz_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_infoblox_authz_v1_authz_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_infoblox_authz_v1_authz_proto_goTypes = []any{
 	(*Rule)(nil),                       // 0: infoblox.authz.v1.Rule
-	(*descriptorpb.MethodOptions)(nil), // 1: google.protobuf.MethodOptions
+	(*FieldRule)(nil),                  // 1: infoblox.authz.v1.FieldRule
+	(*descriptorpb.FieldOptions)(nil),  // 2: google.protobuf.FieldOptions
+	(*descriptorpb.MethodOptions)(nil), // 3: google.protobuf.MethodOptions
 }
 var file_infoblox_authz_v1_authz_proto_depIdxs = []int32{
-	1, // 0: infoblox.authz.v1.rule:extendee -> google.protobuf.MethodOptions
-	0, // 1: infoblox.authz.v1.rule:type_name -> infoblox.authz.v1.Rule
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	1, // [1:2] is the sub-list for extension type_name
-	0, // [0:1] is the sub-list for extension extendee
+	2, // 0: infoblox.authz.v1.field:extendee -> google.protobuf.FieldOptions
+	3, // 1: infoblox.authz.v1.rule:extendee -> google.protobuf.MethodOptions
+	1, // 2: infoblox.authz.v1.field:type_name -> infoblox.authz.v1.FieldRule
+	0, // 3: infoblox.authz.v1.rule:type_name -> infoblox.authz.v1.Rule
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	2, // [2:4] is the sub-list for extension type_name
+	0, // [0:2] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
 }
 
@@ -169,8 +243,8 @@ func file_infoblox_authz_v1_authz_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_infoblox_authz_v1_authz_proto_rawDesc), len(file_infoblox_authz_v1_authz_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
-			NumExtensions: 1,
+			NumMessages:   2,
+			NumExtensions: 2,
 			NumServices:   0,
 		},
 		GoTypes:           file_infoblox_authz_v1_authz_proto_goTypes,
