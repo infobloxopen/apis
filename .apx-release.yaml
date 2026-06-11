@@ -1,0 +1,39 @@
+schema_version: "1"
+state: package-published
+api_id: proto/infoblox/authz/v1
+format: proto
+domain: infoblox
+name: authz
+line: v1
+lifecycle: experimental
+source_repo: github.com/infobloxopen/apis
+source_path: proto/infoblox/authz/v1
+source_commit: 8362eb8
+requested_version: v1.0.0-alpha.3
+canonical_repo: github.com/infobloxopen/apis
+canonical_path: proto/infoblox/authz/v1
+languages:
+    cpp:
+        module: infobloxopen-infoblox-authz-v1-proto
+        import: infobloxopen::infoblox::authz::v1
+    go:
+        module: github.com/infobloxopen/apis/proto/infoblox/authz
+        import: github.com/infobloxopen/apis/proto/infoblox/authz/v1
+    java:
+        module: com.infobloxopen.apis:infoblox-authz-v1-proto
+        import: com.infobloxopen.apis.infoblox.authz.v1
+    python:
+        module: infobloxopen-infoblox-authz-v1
+        import: infobloxopen_apis.infoblox.authz.v1
+    rust:
+        module: infobloxopen-infoblox-authz-v1-proto
+        import: infobloxopen_infoblox::authz::v1
+    typescript:
+        module: '@infobloxopen/infoblox-authz-v1-proto'
+        import: '@infobloxopen/infoblox-authz-v1-proto'
+tag: proto/infoblox/authz/v1.0.0-alpha.3
+validation:
+    lint: passed
+    breaking: passed
+    policy: passed
+finalized_at: "2026-06-11T14:03:28Z"

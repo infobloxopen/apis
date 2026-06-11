@@ -1,0 +1,12 @@
+version: 1
+org: ""
+repo: ""
+modules:
+    - id: proto/infoblox/authz/v1
+      format: proto
+      domain: infoblox
+      api_line: v1
+      version: v1.0.0-alpha.3
+      latest_prerelease: v1.0.0-alpha.3
+      lifecycle: experimental
+      path: proto/infoblox/authz/v1
