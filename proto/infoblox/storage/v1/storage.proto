@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+// Package infoblox.storage.v1 declares engine-neutral, storage-layer annotations
+// for API resource messages. The options carry no ORM/engine specifics (canonical
+// policy forbids those in a published schema) — they are neutral, API-meaningful
+// references that downstream code generators consume to wire persistence.
+package infoblox.storage.v1;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/infobloxopen/apis/proto/infoblox/storage/v1;storagev1";
+
+extend google.protobuf.MessageOptions {
+  // model binds this resource message to a backing storage model, so several API
+  // surfaces can project the SAME stored entity (e.g. v1.Coupon, v2.Coupon, and an
+  // admin view all backed by one "Coupon" model). When the value differs from the
+  // message name, the message is a projection/surface over that model rather than a
+  // model of its own. Absent (the common case) means the model is the message name
+  // itself.
+  string model = 50050;
+}
