@@ -22,6 +22,109 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Strategy selects who supplies the identifier.
+type IdOptions_Strategy int32
+
+const (
+	IdOptions_STRATEGY_UNSPECIFIED      IdOptions_Strategy = 0 // treated as STRATEGY_SERVER_GENERATED
+	IdOptions_STRATEGY_SERVER_GENERATED IdOptions_Strategy = 1 // framework mints the id when the caller omits it
+	IdOptions_STRATEGY_USER_SETTABLE    IdOptions_Strategy = 2 // caller must supply the id (AIP-133 user-specified ids)
+)
+
+// Enum value maps for IdOptions_Strategy.
+var (
+	IdOptions_Strategy_name = map[int32]string{
+		0: "STRATEGY_UNSPECIFIED",
+		1: "STRATEGY_SERVER_GENERATED",
+		2: "STRATEGY_USER_SETTABLE",
+	}
+	IdOptions_Strategy_value = map[string]int32{
+		"STRATEGY_UNSPECIFIED":      0,
+		"STRATEGY_SERVER_GENERATED": 1,
+		"STRATEGY_USER_SETTABLE":    2,
+	}
+)
+
+func (x IdOptions_Strategy) Enum() *IdOptions_Strategy {
+	p := new(IdOptions_Strategy)
+	*p = x
+	return p
+}
+
+func (x IdOptions_Strategy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (IdOptions_Strategy) Descriptor() protoreflect.EnumDescriptor {
+	return file_infoblox_field_v1_field_proto_enumTypes[0].Descriptor()
+}
+
+func (IdOptions_Strategy) Type() protoreflect.EnumType {
+	return &file_infoblox_field_v1_field_proto_enumTypes[0]
+}
+
+func (x IdOptions_Strategy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use IdOptions_Strategy.Descriptor instead.
+func (IdOptions_Strategy) EnumDescriptor() ([]byte, []int) {
+	return file_infoblox_field_v1_field_proto_rawDescGZIP(), []int{5, 0}
+}
+
+// Generator selects the identifier format used for STRATEGY_SERVER_GENERATED.
+type IdOptions_Generator int32
+
+const (
+	IdOptions_GENERATOR_UNSPECIFIED IdOptions_Generator = 0 // treated as GENERATOR_UUID7
+	IdOptions_GENERATOR_UUID7       IdOptions_Generator = 1 // time-ordered UUID (default; index-friendly)
+	IdOptions_GENERATOR_UUID4       IdOptions_Generator = 2 // random UUID
+	IdOptions_GENERATOR_CUSTOM      IdOptions_Generator = 3 // use the host-registered IDGenerator
+)
+
+// Enum value maps for IdOptions_Generator.
+var (
+	IdOptions_Generator_name = map[int32]string{
+		0: "GENERATOR_UNSPECIFIED",
+		1: "GENERATOR_UUID7",
+		2: "GENERATOR_UUID4",
+		3: "GENERATOR_CUSTOM",
+	}
+	IdOptions_Generator_value = map[string]int32{
+		"GENERATOR_UNSPECIFIED": 0,
+		"GENERATOR_UUID7":       1,
+		"GENERATOR_UUID4":       2,
+		"GENERATOR_CUSTOM":      3,
+	}
+)
+
+func (x IdOptions_Generator) Enum() *IdOptions_Generator {
+	p := new(IdOptions_Generator)
+	*p = x
+	return p
+}
+
+func (x IdOptions_Generator) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (IdOptions_Generator) Descriptor() protoreflect.EnumDescriptor {
+	return file_infoblox_field_v1_field_proto_enumTypes[1].Descriptor()
+}
+
+func (IdOptions_Generator) Type() protoreflect.EnumType {
+	return &file_infoblox_field_v1_field_proto_enumTypes[1]
+}
+
+func (x IdOptions_Generator) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use IdOptions_Generator.Descriptor instead.
+func (IdOptions_Generator) EnumDescriptor() ([]byte, []int) {
+	return file_infoblox_field_v1_field_proto_rawDescGZIP(), []int{5, 1}
+}
+
 // FieldOptions declares field-level data-modeling properties: sensitivity,
 // storage constraints, and relationships. This is intentionally separate from
 // the authz package — secret fields and ORM associations are data concerns,
@@ -39,6 +142,11 @@ type FieldOptions struct {
 	Index      bool   `protobuf:"varint,4,opt,name=index,proto3" json:"index,omitempty"`                            // DB index (non-unique)
 	ColumnName string `protobuf:"bytes,5,opt,name=column_name,json=columnName,proto3" json:"column_name,omitempty"` // override the default snake_case column name
 	ColumnType string `protobuf:"bytes,6,opt,name=column_type,json=columnType,proto3" json:"column_type,omitempty"` // override the DB column type (e.g. "varchar(255)")
+	// Identity. Declare on a resource's id field to control how the primary
+	// identifier is produced. When absent, the id field is treated as
+	// SERVER_GENERATED with the UUID7 generator: the framework mints a fresh id
+	// on Create if the caller leaves it empty, and honors a caller-supplied id.
+	Id *IdOptions `protobuf:"bytes,7,opt,name=id,proto3" json:"id,omitempty"`
 	// Relationships. Declare on the proto field that holds the related resource.
 	// The codegen plugins generate the appropriate ORM association or graph edge.
 	HasOne        *HasOne     `protobuf:"bytes,20,opt,name=has_one,json=hasOne,proto3" json:"has_one,omitempty"`
@@ -119,6 +227,13 @@ func (x *FieldOptions) GetColumnType() string {
 		return x.ColumnType
 	}
 	return ""
+}
+
+func (x *FieldOptions) GetId() *IdOptions {
+	if x != nil {
+		return x.Id
+	}
+	return nil
 }
 
 func (x *FieldOptions) GetHasOne() *HasOne {
@@ -388,6 +503,61 @@ func (x *ManyToMany) GetAssociationForeignKey() string {
 	return ""
 }
 
+// IdOptions controls how a resource's primary identifier is produced. Declare it
+// on the resource's id field. Server-generated identity (the default) lets a
+// caller omit the id so the framework mints one; an empty id is never persisted.
+type IdOptions struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Strategy      IdOptions_Strategy     `protobuf:"varint,1,opt,name=strategy,proto3,enum=infoblox.field.v1.IdOptions_Strategy" json:"strategy,omitempty"`
+	Generator     IdOptions_Generator    `protobuf:"varint,2,opt,name=generator,proto3,enum=infoblox.field.v1.IdOptions_Generator" json:"generator,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IdOptions) Reset() {
+	*x = IdOptions{}
+	mi := &file_infoblox_field_v1_field_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IdOptions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IdOptions) ProtoMessage() {}
+
+func (x *IdOptions) ProtoReflect() protoreflect.Message {
+	mi := &file_infoblox_field_v1_field_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IdOptions.ProtoReflect.Descriptor instead.
+func (*IdOptions) Descriptor() ([]byte, []int) {
+	return file_infoblox_field_v1_field_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *IdOptions) GetStrategy() IdOptions_Strategy {
+	if x != nil {
+		return x.Strategy
+	}
+	return IdOptions_STRATEGY_UNSPECIFIED
+}
+
+func (x *IdOptions) GetGenerator() IdOptions_Generator {
+	if x != nil {
+		return x.Generator
+	}
+	return IdOptions_GENERATOR_UNSPECIFIED
+}
+
 var file_infoblox_field_v1_field_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.FieldOptions)(nil),
@@ -412,7 +582,7 @@ var File_infoblox_field_v1_field_proto protoreflect.FileDescriptor
 
 const file_infoblox_field_v1_field_proto_rawDesc = "" +
 	"\n" +
-	"\x1dinfoblox/field/v1/field.proto\x12\x11infoblox.field.v1\x1a google/protobuf/descriptor.proto\"\x9a\x03\n" +
+	"\x1dinfoblox/field/v1/field.proto\x12\x11infoblox.field.v1\x1a google/protobuf/descriptor.proto\"\xc8\x03\n" +
 	"\fFieldOptions\x12\x16\n" +
 	"\x06secret\x18\x01 \x01(\bR\x06secret\x12\x19\n" +
 	"\bnot_null\x18\x02 \x01(\bR\anotNull\x12\x16\n" +
@@ -421,7 +591,8 @@ const file_infoblox_field_v1_field_proto_rawDesc = "" +
 	"\vcolumn_name\x18\x05 \x01(\tR\n" +
 	"columnName\x12\x1f\n" +
 	"\vcolumn_type\x18\x06 \x01(\tR\n" +
-	"columnType\x122\n" +
+	"columnType\x12,\n" +
+	"\x02id\x18\a \x01(\v2\x1c.infoblox.field.v1.IdOptionsR\x02id\x122\n" +
 	"\ahas_one\x18\x14 \x01(\v2\x19.infoblox.field.v1.HasOneR\x06hasOne\x125\n" +
 	"\bhas_many\x18\x15 \x01(\v2\x1a.infoblox.field.v1.HasManyR\ahasMany\x12;\n" +
 	"\n" +
@@ -447,7 +618,19 @@ const file_infoblox_field_v1_field_proto_rawDesc = "" +
 	"join_table\x18\x01 \x01(\tR\tjoinTable\x12\x1f\n" +
 	"\vforeign_key\x18\x02 \x01(\tR\n" +
 	"foreignKey\x126\n" +
-	"\x17association_foreign_key\x18\x03 \x01(\tR\x15associationForeignKey:T\n" +
+	"\x17association_foreign_key\x18\x03 \x01(\tR\x15associationForeignKey\"\xdd\x02\n" +
+	"\tIdOptions\x12A\n" +
+	"\bstrategy\x18\x01 \x01(\x0e2%.infoblox.field.v1.IdOptions.StrategyR\bstrategy\x12D\n" +
+	"\tgenerator\x18\x02 \x01(\x0e2&.infoblox.field.v1.IdOptions.GeneratorR\tgenerator\"_\n" +
+	"\bStrategy\x12\x18\n" +
+	"\x14STRATEGY_UNSPECIFIED\x10\x00\x12\x1d\n" +
+	"\x19STRATEGY_SERVER_GENERATED\x10\x01\x12\x1a\n" +
+	"\x16STRATEGY_USER_SETTABLE\x10\x02\"f\n" +
+	"\tGenerator\x12\x19\n" +
+	"\x15GENERATOR_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fGENERATOR_UUID7\x10\x01\x12\x13\n" +
+	"\x0fGENERATOR_UUID4\x10\x02\x12\x14\n" +
+	"\x10GENERATOR_CUSTOM\x10\x03:T\n" +
 	"\x04opts\x12\x1d.google.protobuf.FieldOptions\x18ӆ\x03 \x01(\v2\x1f.infoblox.field.v1.FieldOptionsR\x04optsB>Z<github.com/infobloxopen/apis/proto/infoblox/field/v1;fieldv1b\x06proto3"
 
 var (
@@ -462,27 +645,34 @@ func file_infoblox_field_v1_field_proto_rawDescGZIP() []byte {
 	return file_infoblox_field_v1_field_proto_rawDescData
 }
 
-var file_infoblox_field_v1_field_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_infoblox_field_v1_field_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_infoblox_field_v1_field_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_infoblox_field_v1_field_proto_goTypes = []any{
-	(*FieldOptions)(nil),              // 0: infoblox.field.v1.FieldOptions
-	(*HasOne)(nil),                    // 1: infoblox.field.v1.HasOne
-	(*HasMany)(nil),                   // 2: infoblox.field.v1.HasMany
-	(*BelongsTo)(nil),                 // 3: infoblox.field.v1.BelongsTo
-	(*ManyToMany)(nil),                // 4: infoblox.field.v1.ManyToMany
-	(*descriptorpb.FieldOptions)(nil), // 5: google.protobuf.FieldOptions
+	(IdOptions_Strategy)(0),           // 0: infoblox.field.v1.IdOptions.Strategy
+	(IdOptions_Generator)(0),          // 1: infoblox.field.v1.IdOptions.Generator
+	(*FieldOptions)(nil),              // 2: infoblox.field.v1.FieldOptions
+	(*HasOne)(nil),                    // 3: infoblox.field.v1.HasOne
+	(*HasMany)(nil),                   // 4: infoblox.field.v1.HasMany
+	(*BelongsTo)(nil),                 // 5: infoblox.field.v1.BelongsTo
+	(*ManyToMany)(nil),                // 6: infoblox.field.v1.ManyToMany
+	(*IdOptions)(nil),                 // 7: infoblox.field.v1.IdOptions
+	(*descriptorpb.FieldOptions)(nil), // 8: google.protobuf.FieldOptions
 }
 var file_infoblox_field_v1_field_proto_depIdxs = []int32{
-	1, // 0: infoblox.field.v1.FieldOptions.has_one:type_name -> infoblox.field.v1.HasOne
-	2, // 1: infoblox.field.v1.FieldOptions.has_many:type_name -> infoblox.field.v1.HasMany
-	3, // 2: infoblox.field.v1.FieldOptions.belongs_to:type_name -> infoblox.field.v1.BelongsTo
-	4, // 3: infoblox.field.v1.FieldOptions.many_to_many:type_name -> infoblox.field.v1.ManyToMany
-	5, // 4: infoblox.field.v1.opts:extendee -> google.protobuf.FieldOptions
-	0, // 5: infoblox.field.v1.opts:type_name -> infoblox.field.v1.FieldOptions
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	5, // [5:6] is the sub-list for extension type_name
-	4, // [4:5] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	7, // 0: infoblox.field.v1.FieldOptions.id:type_name -> infoblox.field.v1.IdOptions
+	3, // 1: infoblox.field.v1.FieldOptions.has_one:type_name -> infoblox.field.v1.HasOne
+	4, // 2: infoblox.field.v1.FieldOptions.has_many:type_name -> infoblox.field.v1.HasMany
+	5, // 3: infoblox.field.v1.FieldOptions.belongs_to:type_name -> infoblox.field.v1.BelongsTo
+	6, // 4: infoblox.field.v1.FieldOptions.many_to_many:type_name -> infoblox.field.v1.ManyToMany
+	0, // 5: infoblox.field.v1.IdOptions.strategy:type_name -> infoblox.field.v1.IdOptions.Strategy
+	1, // 6: infoblox.field.v1.IdOptions.generator:type_name -> infoblox.field.v1.IdOptions.Generator
+	8, // 7: infoblox.field.v1.opts:extendee -> google.protobuf.FieldOptions
+	2, // 8: infoblox.field.v1.opts:type_name -> infoblox.field.v1.FieldOptions
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	8, // [8:9] is the sub-list for extension type_name
+	7, // [7:8] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_infoblox_field_v1_field_proto_init() }
@@ -495,13 +685,14 @@ func file_infoblox_field_v1_field_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_infoblox_field_v1_field_proto_rawDesc), len(file_infoblox_field_v1_field_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   5,
+			NumEnums:      2,
+			NumMessages:   6,
 			NumExtensions: 1,
 			NumServices:   0,
 		},
 		GoTypes:           file_infoblox_field_v1_field_proto_goTypes,
 		DependencyIndexes: file_infoblox_field_v1_field_proto_depIdxs,
+		EnumInfos:         file_infoblox_field_v1_field_proto_enumTypes,
 		MessageInfos:      file_infoblox_field_v1_field_proto_msgTypes,
 		ExtensionInfos:    file_infoblox_field_v1_field_proto_extTypes,
 	}.Build()
