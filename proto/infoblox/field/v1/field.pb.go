@@ -161,6 +161,24 @@ type FieldOptions struct {
 	// An empty list imposes no constraint; an empty field value is treated as
 	// unset and is not checked (use not_null to require a value).
 	AllowedValues []string `protobuf:"bytes,9,rep,name=allowed_values,json=allowedValues,proto3" json:"allowed_values,omitempty"`
+	// credential marks a string field as a verify-only credential (an API key or
+	// token). Unlike secret (which keeps a reversible cipher for retrieval), a
+	// credential is HASHED, never encrypted — the framework:
+	//   - MINTS the value on Create as a prefixed split token
+	//     "<prefix>_<public_id>_<secret>" and returns it to the caller exactly ONCE,
+	//   - stores only the plaintext public_id (unique, indexed for lookup), a
+	//     per-secret salt, and a one-way hash of the secret (SHA-512/256 by default;
+	//     no reversible copy is ever stored),
+	//   - never returns the value on Get/List,
+	//   - generates a Verify<Field> that looks up by public_id and compares in
+	//     constant time.
+	//
+	// Mutually exclusive with secret. The field must be a string.
+	Credential bool `protobuf:"varint,10,opt,name=credential,proto3" json:"credential,omitempty"`
+	// credential_prefix overrides the default token prefix (e.g. "ib") for a
+	// credential field. The prefix is a shared, well-known, non-secret tag that
+	// makes leaked tokens easy to spot (secret-scanning); it is not the lookup key.
+	CredentialPrefix string `protobuf:"bytes,11,opt,name=credential_prefix,json=credentialPrefix,proto3" json:"credential_prefix,omitempty"`
 	// Relationships. Declare on the proto field that holds the related resource.
 	// The codegen plugins generate the appropriate ORM association or graph edge.
 	HasOne        *HasOne     `protobuf:"bytes,20,opt,name=has_one,json=hasOne,proto3" json:"has_one,omitempty"`
@@ -262,6 +280,20 @@ func (x *FieldOptions) GetAllowedValues() []string {
 		return x.AllowedValues
 	}
 	return nil
+}
+
+func (x *FieldOptions) GetCredential() bool {
+	if x != nil {
+		return x.Credential
+	}
+	return false
+}
+
+func (x *FieldOptions) GetCredentialPrefix() string {
+	if x != nil {
+		return x.CredentialPrefix
+	}
+	return ""
 }
 
 func (x *FieldOptions) GetHasOne() *HasOne {
@@ -610,7 +642,7 @@ var File_infoblox_field_v1_field_proto protoreflect.FileDescriptor
 
 const file_infoblox_field_v1_field_proto_rawDesc = "" +
 	"\n" +
-	"\x1dinfoblox/field/v1/field.proto\x12\x11infoblox.field.v1\x1a google/protobuf/descriptor.proto\"\x90\x04\n" +
+	"\x1dinfoblox/field/v1/field.proto\x12\x11infoblox.field.v1\x1a google/protobuf/descriptor.proto\"\xdd\x04\n" +
 	"\fFieldOptions\x12\x16\n" +
 	"\x06secret\x18\x01 \x01(\bR\x06secret\x12\x19\n" +
 	"\bnot_null\x18\x02 \x01(\bR\anotNull\x12\x16\n" +
@@ -623,7 +655,12 @@ const file_infoblox_field_v1_field_proto_rawDesc = "" +
 	"\x02id\x18\a \x01(\v2\x1c.infoblox.field.v1.IdOptionsR\x02id\x12\x1f\n" +
 	"\vunique_with\x18\b \x03(\tR\n" +
 	"uniqueWith\x12%\n" +
-	"\x0eallowed_values\x18\t \x03(\tR\rallowedValues\x122\n" +
+	"\x0eallowed_values\x18\t \x03(\tR\rallowedValues\x12\x1e\n" +
+	"\n" +
+	"credential\x18\n" +
+	" \x01(\bR\n" +
+	"credential\x12+\n" +
+	"\x11credential_prefix\x18\v \x01(\tR\x10credentialPrefix\x122\n" +
 	"\ahas_one\x18\x14 \x01(\v2\x19.infoblox.field.v1.HasOneR\x06hasOne\x125\n" +
 	"\bhas_many\x18\x15 \x01(\v2\x1a.infoblox.field.v1.HasManyR\ahasMany\x12;\n" +
 	"\n" +
