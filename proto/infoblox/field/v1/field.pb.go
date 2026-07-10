@@ -179,6 +179,8 @@ type FieldOptions struct {
 	// credential field. The prefix is a shared, well-known, non-secret tag that
 	// makes leaked tokens easy to spot (secret-scanning); it is not the lookup key.
 	CredentialPrefix string `protobuf:"bytes,11,opt,name=credential_prefix,json=credentialPrefix,proto3" json:"credential_prefix,omitempty"`
+	// searchable includes this column in the resource's full-text search vector.
+	Searchable bool `protobuf:"varint,12,opt,name=searchable,proto3" json:"searchable,omitempty"`
 	// Relationships. Declare on the proto field that holds the related resource.
 	// The codegen plugins generate the appropriate ORM association or graph edge.
 	HasOne        *HasOne     `protobuf:"bytes,20,opt,name=has_one,json=hasOne,proto3" json:"has_one,omitempty"`
@@ -294,6 +296,13 @@ func (x *FieldOptions) GetCredentialPrefix() string {
 		return x.CredentialPrefix
 	}
 	return ""
+}
+
+func (x *FieldOptions) GetSearchable() bool {
+	if x != nil {
+		return x.Searchable
+	}
+	return false
 }
 
 func (x *FieldOptions) GetHasOne() *HasOne {
@@ -642,7 +651,7 @@ var File_infoblox_field_v1_field_proto protoreflect.FileDescriptor
 
 const file_infoblox_field_v1_field_proto_rawDesc = "" +
 	"\n" +
-	"\x1dinfoblox/field/v1/field.proto\x12\x11infoblox.field.v1\x1a google/protobuf/descriptor.proto\"\xdd\x04\n" +
+	"\x1dinfoblox/field/v1/field.proto\x12\x11infoblox.field.v1\x1a google/protobuf/descriptor.proto\"\xfd\x04\n" +
 	"\fFieldOptions\x12\x16\n" +
 	"\x06secret\x18\x01 \x01(\bR\x06secret\x12\x19\n" +
 	"\bnot_null\x18\x02 \x01(\bR\anotNull\x12\x16\n" +
@@ -660,7 +669,10 @@ const file_infoblox_field_v1_field_proto_rawDesc = "" +
 	"credential\x18\n" +
 	" \x01(\bR\n" +
 	"credential\x12+\n" +
-	"\x11credential_prefix\x18\v \x01(\tR\x10credentialPrefix\x122\n" +
+	"\x11credential_prefix\x18\v \x01(\tR\x10credentialPrefix\x12\x1e\n" +
+	"\n" +
+	"searchable\x18\f \x01(\bR\n" +
+	"searchable\x122\n" +
 	"\ahas_one\x18\x14 \x01(\v2\x19.infoblox.field.v1.HasOneR\x06hasOne\x125\n" +
 	"\bhas_many\x18\x15 \x01(\v2\x1a.infoblox.field.v1.HasManyR\ahasMany\x12;\n" +
 	"\n" +
