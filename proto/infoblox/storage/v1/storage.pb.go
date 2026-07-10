@@ -16,6 +16,7 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
 	reflect "reflect"
+	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -26,6 +27,343 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Strategy selects how the search vector is materialized.
+type SearchConfig_Strategy int32
+
+const (
+	SearchConfig_STRATEGY_UNSPECIFIED SearchConfig_Strategy = 0 // treated as STRATEGY_JIT
+	SearchConfig_STRATEGY_JIT         SearchConfig_Strategy = 1 // computed at query time (default)
+	SearchConfig_STRATEGY_INDEXED     SearchConfig_Strategy = 2 // persisted + indexed (generated column + GIN index)
+	SearchConfig_STRATEGY_PROJECTED   SearchConfig_Strategy = 3 // reserved
+)
+
+// Enum value maps for SearchConfig_Strategy.
+var (
+	SearchConfig_Strategy_name = map[int32]string{
+		0: "STRATEGY_UNSPECIFIED",
+		1: "STRATEGY_JIT",
+		2: "STRATEGY_INDEXED",
+		3: "STRATEGY_PROJECTED",
+	}
+	SearchConfig_Strategy_value = map[string]int32{
+		"STRATEGY_UNSPECIFIED": 0,
+		"STRATEGY_JIT":         1,
+		"STRATEGY_INDEXED":     2,
+		"STRATEGY_PROJECTED":   3,
+	}
+)
+
+func (x SearchConfig_Strategy) Enum() *SearchConfig_Strategy {
+	p := new(SearchConfig_Strategy)
+	*p = x
+	return p
+}
+
+func (x SearchConfig_Strategy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SearchConfig_Strategy) Descriptor() protoreflect.EnumDescriptor {
+	return file_infoblox_storage_v1_storage_proto_enumTypes[0].Descriptor()
+}
+
+func (SearchConfig_Strategy) Type() protoreflect.EnumType {
+	return &file_infoblox_storage_v1_storage_proto_enumTypes[0]
+}
+
+func (x SearchConfig_Strategy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SearchConfig_Strategy.Descriptor instead.
+func (SearchConfig_Strategy) EnumDescriptor() ([]byte, []int) {
+	return file_infoblox_storage_v1_storage_proto_rawDescGZIP(), []int{0, 0}
+}
+
+// SearchConfig declares how a resource message participates in full-text
+// search: the materialization strategy, the Postgres text-search config, and
+// any calculated sources beyond field-flagged columns.
+type SearchConfig struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Strategy   SearchConfig_Strategy  `protobuf:"varint,1,opt,name=strategy,proto3,enum=infoblox.storage.v1.SearchConfig_Strategy" json:"strategy,omitempty"` // default STRATEGY_JIT
+	TextConfig string                 `protobuf:"bytes,2,opt,name=text_config,json=textConfig,proto3" json:"text_config,omitempty"`                           // Postgres TS config; default "simple"
+	// sources lists calculated/transformed sources beyond field-flagged columns.
+	Sources       []*SearchSource `protobuf:"bytes,3,rep,name=sources,proto3" json:"sources,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchConfig) Reset() {
+	*x = SearchConfig{}
+	mi := &file_infoblox_storage_v1_storage_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchConfig) ProtoMessage() {}
+
+func (x *SearchConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_infoblox_storage_v1_storage_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchConfig.ProtoReflect.Descriptor instead.
+func (*SearchConfig) Descriptor() ([]byte, []int) {
+	return file_infoblox_storage_v1_storage_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *SearchConfig) GetStrategy() SearchConfig_Strategy {
+	if x != nil {
+		return x.Strategy
+	}
+	return SearchConfig_STRATEGY_UNSPECIFIED
+}
+
+func (x *SearchConfig) GetTextConfig() string {
+	if x != nil {
+		return x.TextConfig
+	}
+	return ""
+}
+
+func (x *SearchConfig) GetSources() []*SearchSource {
+	if x != nil {
+		return x.Sources
+	}
+	return nil
+}
+
+// SearchSource declares one contributor to a resource's search vector beyond a
+// plain field-flagged column: either a portable field reference or a set of
+// flavored expressions.
+type SearchSource struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is a logical name for diagnostics and x-aip-search.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Types that are valid to be assigned to From:
+	//
+	//	*SearchSource_Field
+	//	*SearchSource_Exprs
+	From isSearchSource_From `protobuf_oneof:"from"`
+	// text_config optionally overrides the SearchConfig-level text_config for
+	// this source.
+	TextConfig    string `protobuf:"bytes,4,opt,name=text_config,json=textConfig,proto3" json:"text_config,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchSource) Reset() {
+	*x = SearchSource{}
+	mi := &file_infoblox_storage_v1_storage_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchSource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchSource) ProtoMessage() {}
+
+func (x *SearchSource) ProtoReflect() protoreflect.Message {
+	mi := &file_infoblox_storage_v1_storage_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchSource.ProtoReflect.Descriptor instead.
+func (*SearchSource) Descriptor() ([]byte, []int) {
+	return file_infoblox_storage_v1_storage_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SearchSource) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SearchSource) GetFrom() isSearchSource_From {
+	if x != nil {
+		return x.From
+	}
+	return nil
+}
+
+func (x *SearchSource) GetField() string {
+	if x != nil {
+		if x, ok := x.From.(*SearchSource_Field); ok {
+			return x.Field
+		}
+	}
+	return ""
+}
+
+func (x *SearchSource) GetExprs() *SearchExprSet {
+	if x != nil {
+		if x, ok := x.From.(*SearchSource_Exprs); ok {
+			return x.Exprs
+		}
+	}
+	return nil
+}
+
+func (x *SearchSource) GetTextConfig() string {
+	if x != nil {
+		return x.TextConfig
+	}
+	return ""
+}
+
+type isSearchSource_From interface {
+	isSearchSource_From()
+}
+
+type SearchSource_Field struct {
+	// field is a field reference (portable across engines).
+	Field string `protobuf:"bytes,2,opt,name=field,proto3,oneof"`
+}
+
+type SearchSource_Exprs struct {
+	// exprs is a set of flavored expressions.
+	Exprs *SearchExprSet `protobuf:"bytes,3,opt,name=exprs,proto3,oneof"`
+}
+
+func (*SearchSource_Field) isSearchSource_From() {}
+
+func (*SearchSource_Exprs) isSearchSource_From() {}
+
+// SearchExprSet is a set of flavored expressions for one SearchSource.
+type SearchExprSet struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Expr          []*SearchExpr          `protobuf:"bytes,1,rep,name=expr,proto3" json:"expr,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchExprSet) Reset() {
+	*x = SearchExprSet{}
+	mi := &file_infoblox_storage_v1_storage_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchExprSet) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchExprSet) ProtoMessage() {}
+
+func (x *SearchExprSet) ProtoReflect() protoreflect.Message {
+	mi := &file_infoblox_storage_v1_storage_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchExprSet.ProtoReflect.Descriptor instead.
+func (*SearchExprSet) Descriptor() ([]byte, []int) {
+	return file_infoblox_storage_v1_storage_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SearchExprSet) GetExpr() []*SearchExpr {
+	if x != nil {
+		return x.Expr
+	}
+	return nil
+}
+
+// SearchExpr is one flavored expression contributing to a search source.
+type SearchExpr struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Flavor        string                 `protobuf:"bytes,1,opt,name=flavor,proto3" json:"flavor,omitempty"`   // "sql" | "cel"
+	Dialect       string                 `protobuf:"bytes,2,opt,name=dialect,proto3" json:"dialect,omitempty"` // sql only: "postgres"
+	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"` // flavor spec version (pins meaning)
+	Expr          string                 `protobuf:"bytes,4,opt,name=expr,proto3" json:"expr,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchExpr) Reset() {
+	*x = SearchExpr{}
+	mi := &file_infoblox_storage_v1_storage_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchExpr) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchExpr) ProtoMessage() {}
+
+func (x *SearchExpr) ProtoReflect() protoreflect.Message {
+	mi := &file_infoblox_storage_v1_storage_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchExpr.ProtoReflect.Descriptor instead.
+func (*SearchExpr) Descriptor() ([]byte, []int) {
+	return file_infoblox_storage_v1_storage_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SearchExpr) GetFlavor() string {
+	if x != nil {
+		return x.Flavor
+	}
+	return ""
+}
+
+func (x *SearchExpr) GetDialect() string {
+	if x != nil {
+		return x.Dialect
+	}
+	return ""
+}
+
+func (x *SearchExpr) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *SearchExpr) GetExpr() string {
+	if x != nil {
+		return x.Expr
+	}
+	return ""
+}
+
 var file_infoblox_storage_v1_storage_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.MessageOptions)(nil),
@@ -33,6 +371,14 @@ var file_infoblox_storage_v1_storage_proto_extTypes = []protoimpl.ExtensionInfo{
 		Field:         50050,
 		Name:          "infoblox.storage.v1.model",
 		Tag:           "bytes,50050,opt,name=model",
+		Filename:      "infoblox/storage/v1/storage.proto",
+	},
+	{
+		ExtendedType:  (*descriptorpb.MessageOptions)(nil),
+		ExtensionType: (*SearchConfig)(nil),
+		Field:         50051,
+		Name:          "infoblox.storage.v1.search",
+		Tag:           "bytes,50051,opt,name=search",
 		Filename:      "infoblox/storage/v1/storage.proto",
 	},
 }
@@ -48,25 +394,82 @@ var (
 	//
 	// optional string model = 50050;
 	E_Model = &file_infoblox_storage_v1_storage_proto_extTypes[0]
+	// search declares the resource's full-text search configuration: strategy,
+	// text-search config, and any calculated/transformed sources beyond the
+	// field-flagged columns (infoblox.field.v1.FieldOptions.searchable).
+	//
+	// optional infoblox.storage.v1.SearchConfig search = 50051;
+	E_Search = &file_infoblox_storage_v1_storage_proto_extTypes[1]
 )
 
 var File_infoblox_storage_v1_storage_proto protoreflect.FileDescriptor
 
 const file_infoblox_storage_v1_storage_proto_rawDesc = "" +
 	"\n" +
-	"!infoblox/storage/v1/storage.proto\x12\x13infoblox.storage.v1\x1a google/protobuf/descriptor.proto:7\n" +
-	"\x05model\x12\x1f.google.protobuf.MessageOptions\x18\x82\x87\x03 \x01(\tR\x05modelBBZ@github.com/infobloxopen/apis/proto/infoblox/storage/v1;storagev1b\x06proto3"
+	"!infoblox/storage/v1/storage.proto\x12\x13infoblox.storage.v1\x1a google/protobuf/descriptor.proto\"\x9a\x02\n" +
+	"\fSearchConfig\x12F\n" +
+	"\bstrategy\x18\x01 \x01(\x0e2*.infoblox.storage.v1.SearchConfig.StrategyR\bstrategy\x12\x1f\n" +
+	"\vtext_config\x18\x02 \x01(\tR\n" +
+	"textConfig\x12;\n" +
+	"\asources\x18\x03 \x03(\v2!.infoblox.storage.v1.SearchSourceR\asources\"d\n" +
+	"\bStrategy\x12\x18\n" +
+	"\x14STRATEGY_UNSPECIFIED\x10\x00\x12\x10\n" +
+	"\fSTRATEGY_JIT\x10\x01\x12\x14\n" +
+	"\x10STRATEGY_INDEXED\x10\x02\x12\x16\n" +
+	"\x12STRATEGY_PROJECTED\x10\x03\"\x9f\x01\n" +
+	"\fSearchSource\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
+	"\x05field\x18\x02 \x01(\tH\x00R\x05field\x12:\n" +
+	"\x05exprs\x18\x03 \x01(\v2\".infoblox.storage.v1.SearchExprSetH\x00R\x05exprs\x12\x1f\n" +
+	"\vtext_config\x18\x04 \x01(\tR\n" +
+	"textConfigB\x06\n" +
+	"\x04from\"D\n" +
+	"\rSearchExprSet\x123\n" +
+	"\x04expr\x18\x01 \x03(\v2\x1f.infoblox.storage.v1.SearchExprR\x04expr\"l\n" +
+	"\n" +
+	"SearchExpr\x12\x16\n" +
+	"\x06flavor\x18\x01 \x01(\tR\x06flavor\x12\x18\n" +
+	"\adialect\x18\x02 \x01(\tR\adialect\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\tR\aversion\x12\x12\n" +
+	"\x04expr\x18\x04 \x01(\tR\x04expr:7\n" +
+	"\x05model\x12\x1f.google.protobuf.MessageOptions\x18\x82\x87\x03 \x01(\tR\x05model:\\\n" +
+	"\x06search\x12\x1f.google.protobuf.MessageOptions\x18\x83\x87\x03 \x01(\v2!.infoblox.storage.v1.SearchConfigR\x06searchBBZ@github.com/infobloxopen/apis/proto/infoblox/storage/v1;storagev1b\x06proto3"
 
+var (
+	file_infoblox_storage_v1_storage_proto_rawDescOnce sync.Once
+	file_infoblox_storage_v1_storage_proto_rawDescData []byte
+)
+
+func file_infoblox_storage_v1_storage_proto_rawDescGZIP() []byte {
+	file_infoblox_storage_v1_storage_proto_rawDescOnce.Do(func() {
+		file_infoblox_storage_v1_storage_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_infoblox_storage_v1_storage_proto_rawDesc), len(file_infoblox_storage_v1_storage_proto_rawDesc)))
+	})
+	return file_infoblox_storage_v1_storage_proto_rawDescData
+}
+
+var file_infoblox_storage_v1_storage_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_infoblox_storage_v1_storage_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_infoblox_storage_v1_storage_proto_goTypes = []any{
-	(*descriptorpb.MessageOptions)(nil), // 0: google.protobuf.MessageOptions
+	(SearchConfig_Strategy)(0),          // 0: infoblox.storage.v1.SearchConfig.Strategy
+	(*SearchConfig)(nil),                // 1: infoblox.storage.v1.SearchConfig
+	(*SearchSource)(nil),                // 2: infoblox.storage.v1.SearchSource
+	(*SearchExprSet)(nil),               // 3: infoblox.storage.v1.SearchExprSet
+	(*SearchExpr)(nil),                  // 4: infoblox.storage.v1.SearchExpr
+	(*descriptorpb.MessageOptions)(nil), // 5: google.protobuf.MessageOptions
 }
 var file_infoblox_storage_v1_storage_proto_depIdxs = []int32{
-	0, // 0: infoblox.storage.v1.model:extendee -> google.protobuf.MessageOptions
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	0, // [0:1] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: infoblox.storage.v1.SearchConfig.strategy:type_name -> infoblox.storage.v1.SearchConfig.Strategy
+	2, // 1: infoblox.storage.v1.SearchConfig.sources:type_name -> infoblox.storage.v1.SearchSource
+	3, // 2: infoblox.storage.v1.SearchSource.exprs:type_name -> infoblox.storage.v1.SearchExprSet
+	4, // 3: infoblox.storage.v1.SearchExprSet.expr:type_name -> infoblox.storage.v1.SearchExpr
+	5, // 4: infoblox.storage.v1.model:extendee -> google.protobuf.MessageOptions
+	5, // 5: infoblox.storage.v1.search:extendee -> google.protobuf.MessageOptions
+	1, // 6: infoblox.storage.v1.search:type_name -> infoblox.storage.v1.SearchConfig
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	6, // [6:7] is the sub-list for extension type_name
+	4, // [4:6] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_infoblox_storage_v1_storage_proto_init() }
@@ -74,18 +477,24 @@ func file_infoblox_storage_v1_storage_proto_init() {
 	if File_infoblox_storage_v1_storage_proto != nil {
 		return
 	}
+	file_infoblox_storage_v1_storage_proto_msgTypes[1].OneofWrappers = []any{
+		(*SearchSource_Field)(nil),
+		(*SearchSource_Exprs)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_infoblox_storage_v1_storage_proto_rawDesc), len(file_infoblox_storage_v1_storage_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   0,
-			NumExtensions: 1,
+			NumEnums:      1,
+			NumMessages:   4,
+			NumExtensions: 2,
 			NumServices:   0,
 		},
 		GoTypes:           file_infoblox_storage_v1_storage_proto_goTypes,
 		DependencyIndexes: file_infoblox_storage_v1_storage_proto_depIdxs,
+		EnumInfos:         file_infoblox_storage_v1_storage_proto_enumTypes,
+		MessageInfos:      file_infoblox_storage_v1_storage_proto_msgTypes,
 		ExtensionInfos:    file_infoblox_storage_v1_storage_proto_extTypes,
 	}.Build()
 	File_infoblox_storage_v1_storage_proto = out.File
